@@ -3,10 +3,9 @@
   #define MSK_ENCODEUR (_BV(PIN_ENCODEUR1)|_BV(PIN_ENCODEUR2))
 #define ADC_BOUTONS ADC2
 
-#define STAT_ROTATION 0b00001
-#define STAT_DROITE   0b00010
-#define STAT_BOUTON1  0b00100
-#define STAT_BOUTON2  0b01000
-#define STAT_BOUTON3  0b10000
+#define BUTTON1 0b0001
+#define BUTTON2 0b0010
+#define BUTTON3 0b0100
+#define BUTTON4 0b1000
 
 static int8_t  g_rotate = 0 ;

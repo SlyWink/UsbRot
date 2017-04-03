@@ -24,7 +24,7 @@ publish any hardware using these IDs! This is for demonstration only!
 
 #include <avr/pgmspace.h>   /* required by usbdrv.h */
 #include "usbdrv.h"
-#include "oddebug.h"        /* This is also an example for using debug macros */
+//#include "oddebug.h"        /* This is also an example for using debug macros */
 
 #include "usbrot.c"
 
@@ -178,8 +178,10 @@ int __attribute__((noreturn)) main(void)
 {
 uchar   i;
 uint8_t l_cpt = 0 ;
+uint8_t l_btnadc ;
+uint8_t l_btnmsk = 0xFF ;
 
-    Serial_Debug_Send(0x80) ; _delay_ms(2000) ;
+//    Serial_Debug_Send(0x80) ; _delay_ms(2000) ;
     wdt_enable(WDTO_1S);
     /* If you don't use the watchdog, replace the call above with a wdt_disable().
      * On newer devices, the status of the watchdog (on/off, period) is PRESERVED
@@ -189,8 +191,6 @@ uint8_t l_cpt = 0 ;
      * That's the way we need D+ and D-. Therefore we don't need any
      * additional hardware initialization.
      */
-    odDebugInit();
-//    DBG1(0x00, 0, 0);       /* debug output: main starts */
     usbInit();
     usbDeviceDisconnect();  /* enforce re-enumeration, do this while interrupts are disabled! */
     i = 0;
@@ -200,22 +200,31 @@ uint8_t l_cpt = 0 ;
     }
     usbDeviceConnect();
     Init_Fake_Mouse() ; // SL
+    Start_Conversion() ;
     sei();
-//    DBG1(0x01, 0, 0);       /* debug output: main loop starts */
     for(;;){                /* main event loop */
-//        DBG1(0x02, 0, 0);   /* debug output: main loop iterates */
-//        Serial_Debug_Send(0x82) ; _delay_ms(10) ;
         wdt_reset();
+        if (!Conversion_In_Progress()) {
+          l_btnadc = Read_Buttons() ;
+          l_btnmsk = 0 ;
+          if (l_btnadc & BUTTON1) l_btnmsk |= 0b001 ;
+          if (l_btnadc & BUTTON2) l_btnmsk |= 0b010 ;
+          if (l_btnadc & BUTTON3) l_btnmsk |= 0b100 ;
+          if (l_btnadc & BUTTON4) l_btnmsk |= 0b111 ;
+          Start_Conversion() ;
+        }
         usbPoll();
         if(usbInterruptIsReady()) {
 //  GIMSK &= ~_BV(PCIE) ;
             Move_X(g_rotate) ;
+            if (l_btnmsk != 0xFF) {
+              reportBuffer.buttonMask = l_btnmsk ;
+              l_btnmsk = 0xFF ;
+            }
             usbSetInterrupt((void *)&reportBuffer, sizeof(reportBuffer));
             l_cpt += g_rotate ;
             g_rotate = 0 ;
 //  GIMSK |= _BV(PCIE) ;
-//            Serial_Debug_Send(l_cpt) ;
-//        usbPoll(); _delay_ms(1) ;
         }
     }
 }
